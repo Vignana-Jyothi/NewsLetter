@@ -5,32 +5,28 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ─────────────────────────────────────────────
--- ENUMS
+-- ENUMS (safe to re-run — skips if already exists)
 -- ─────────────────────────────────────────────
-CREATE TYPE user_role AS ENUM ('Student', 'Faculty', 'Admin');
+DO $$ BEGIN
+  CREATE TYPE user_role AS ENUM ('Student', 'Faculty', 'Admin');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE TYPE submission_status AS ENUM (
-  'Draft',      -- Saved but not submitted
-  'Pending',    -- Submitted, awaiting admin review
-  'Approved',   -- Admin approved, eligible for newsletter
-  'Rejected',   -- Admin rejected — TERMINAL STATE
-  'Selected',   -- Admin selected for a specific newsletter
-  'Published',  -- Newsletter published
-  'Archived'    -- Newsletter archived
-);
+DO $$ BEGIN
+  CREATE TYPE submission_status AS ENUM (
+    'Draft', 'Pending', 'Approved', 'Rejected', 'Selected', 'Published', 'Archived'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE TYPE newsletter_status AS ENUM ('Draft', 'Published', 'Archived');
+DO $$ BEGIN
+  CREATE TYPE newsletter_status AS ENUM ('Draft', 'Published', 'Archived');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE TYPE submission_type AS ENUM (
-  'PLACEMENT',
-  'RESEARCH',
-  'SPORTS',
-  'CERTIFICATION',
-  'WORKSHOP',
-  'GUEST_LECTURE',
-  'FACULTY_ACHIEVEMENT',
-  'STUDENT_ACHIEVEMENT'
-);
+DO $$ BEGIN
+  CREATE TYPE submission_type AS ENUM (
+    'PLACEMENT', 'RESEARCH', 'SPORTS', 'CERTIFICATION',
+    'WORKSHOP', 'GUEST_LECTURE', 'FACULTY_ACHIEVEMENT', 'STUDENT_ACHIEVEMENT'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ─────────────────────────────────────────────
 -- TABLE 1: Departments

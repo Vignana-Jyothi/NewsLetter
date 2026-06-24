@@ -1,4 +1,4 @@
-﻿# Logs
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -124,3 +124,6 @@ dist
 # Newsflow specific exclusions
 Backend/uploads/
 
+# Documentation files to untrack/ignore
+Explanation.md
+Moredetails.md

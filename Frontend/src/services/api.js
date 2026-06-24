@@ -1,15 +1,11 @@
 import axios from 'axios';
-import { API_BASE } from '../utils/constants';
 
-const api = axios.create({ baseURL: API_BASE });
+// Falls back to localhost for local development
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Attach user ID to every request (Mock Auth)
-api.interceptors.request.use((config) => {
-  const user = JSON.parse(localStorage.getItem('newsflow_user') || 'null');
-  if (user?.id) {
-    config.headers['x-user-id'] = user.id;
-  }
-  return config;
+const api = axios.create({
+  baseURL: API_BASE,
+  withCredentials: true,
 });
 
 export default api;

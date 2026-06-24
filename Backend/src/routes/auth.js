@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getDemoUsers, selectUser } = require('../controllers/authController');
+const { verifyToken } = require('../middlewares/auth');
 
-// GET  /api/auth/demo-users  — returns all demo accounts for login page
-router.get('/demo-users', getDemoUsers);
-
-// POST /api/auth/select      — selects a demo user (returns user context)
-router.post('/select', selectUser);
+// GET /api/auth/profile — returns user profile based on the cookie
+router.get('/profile', verifyToken, (req, res) => {
+  res.json({ success: true, data: req.user });
+});
 
 module.exports = router;

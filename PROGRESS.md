@@ -15,7 +15,7 @@ Module 4 — Newsletter Generation      ████████████ 100
 Module 5 — Publication                ████████████ 100%  ✅
 Module 6 — Archival & Search          ████████████ 100%  ✅
 ──────────────────────────────────────
-DB Running & Seeded                   ░░░░░░░░░░░░   0%  ⏳  ← BLOCKED: Need DB credentials
+DB Running & Seeded                   ████████████ 100%  ✅
 ```
 
 ---
@@ -38,7 +38,7 @@ DB Running & Seeded                   ░░░░░░░░░░░░   0% 
 - [x] `NotificationService` (DB-first, unread count)
 - [x] All controllers (auth, submissions, approvals, newsletters, notifications)
 - [x] All Express routes with role-based access control
-- [x] `mockAuth` middleware (`x-user-id` header → real JWT later)
+- [x] `mockAuth` middleware (now real `verifyToken` via SSO auth server)
 - [x] Global error handler middleware
 - [x] `multer.js` config (UUID filenames, 10MB limit, type filtering)
 - [x] `server.js` entry point (auto-init DB on first run)
@@ -88,7 +88,15 @@ DB Running & Seeded                   ░░░░░░░░░░░░   0% 
 - [ ] Add `EditSubmissionPage.jsx` (for editing Draft submissions — linked but not built yet)
 - [ ] Add loading skeletons / better empty states across pages
 - [ ] Add `.gitignore` (exclude `node_modules`, `.env`, `uploads/`)
-- [ ] Verify notification read-all route (`PATCH /notifications/read-all`) — route ordering fix may be needed
+- [x] ~~Notification route ordering bug~~ **FIXED** — `/read-all` now before `/:id/read`
+
+### ✅ SSO Integration Fixes (24 June 2026)
+
+- [x] `useAuth.jsx` — set `user` cookie via `js-cookie` after login; clear on logout
+- [x] `middlewares/auth.js` — DB lookup by email populates `department_id` + `role` from local Users table
+- [x] `routes/notifications.js` — fixed `PATCH /read-all` route ordering
+- [x] `scripts/smoke-test.js` — created smoke test (health + DB + auth server)
+- [x] `package.json` — added `test:smoke` npm script
 
 ---
 
@@ -154,7 +162,7 @@ d:\CBPS\NewsLetter\
 # Terminal 1 — Backend
 cd d:\CBPS\NewsLetter\Backend
 # (fill .env first)
-npm run dev
+node server.js
 
 # Terminal 2 — Frontend
 cd d:\CBPS\NewsLetter\Frontend
