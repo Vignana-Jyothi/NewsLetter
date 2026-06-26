@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { FileText, Send, Download, Eye } from 'lucide-react';
+import { FileText, Send, Download, Eye, CheckCircle } from 'lucide-react';
 
 const PublicationPage = () => {
   const [newsletters, setNewsletters] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [pdfUrl, setPdfUrl] = useState(null);
-  const [generating, setGenerating] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [selected, setSelected]       = useState(null);
+  const [pdfUrl, setPdfUrl]           = useState(null);
+  const [generating, setGenerating]   = useState(false);
+  const [publishing, setPublishing]   = useState(false);
+  const [loading, setLoading]         = useState(true);
+  const [published, setPublished]     = useState(false);
 
   useEffect(() => {
-    api.get('/newsletters').then(res => {
-      const drafts = res.data.data.filter(n => n.status === 'Draft' && parseInt(n.item_count) > 0);
-      setNewsletters(drafts);
+    api.get('/newsletters').then(r => {
+      setNewsletters((r.data.data || []).filter(n => n.status === 'Draft' && parseInt(n.item_count) > 0));
       setLoading(false);
     });
   }, []);
@@ -22,13 +22,11 @@ const PublicationPage = () => {
     if (!selected) return;
     setGenerating(true);
     try {
-      const res = await api.post(`/newsletters/${selected.id}/generate-pdf`);
-      setPdfUrl(`http://localhost:5000${res.data.data.fileUrl}`);
+      const r = await api.post(`/newsletters/${selected.id}/generate-pdf`);
+      setPdfUrl(`http://localhost:5000${r.data.data.fileUrl}`);
     } catch (err) {
       alert(err.response?.data?.error || 'PDF generation failed');
-    } finally {
-      setGenerating(false);
-    }
+    } finally { setGenerating(false); }
   };
 
   const handlePublish = async () => {
@@ -36,97 +34,82 @@ const PublicationPage = () => {
     setPublishing(true);
     try {
       await api.patch(`/newsletters/${selected.id}/publish`);
-      setNewsletters(prev => prev.filter(n => n.id !== selected.id));
-      setSelected(null);
-      setPdfUrl(null);
-      alert('Newsletter published successfully! All department users have been notified.');
+      setNewsletters(p => p.filter(n => n.id !== selected.id));
+      setSelected(null); setPdfUrl(null); setPublished(true);
     } catch (err) {
       alert(err.response?.data?.error || 'Publish failed');
-    } finally {
-      setPublishing(false);
-    }
+    } finally { setPublishing(false); }
   };
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-1">Publication</h1>
-        <p className="text-white/40">Preview and publish newsletters to your department</p>
+      <div className="page-header">
+        <h1 className="page-title">Published Newsletters</h1>
+        <p className="page-subtitle">Preview and publish newsletters to your department</p>
       </div>
 
+      {published && (
+        <div className="mb-5 flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+          <CheckCircle size={18} className="text-emerald-600" />
+          <p className="text-sm text-emerald-700 font-medium">Newsletter published successfully! All department members have been notified.</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Newsletter Selector */}
+        {/* Selector */}
         <div>
-          <h2 className="text-sm font-medium text-white/50 mb-3">Ready to Publish</h2>
-          {loading ? (
-            <div className="text-white/30 text-sm animate-pulse">Loading...</div>
-          ) : newsletters.length === 0 ? (
-            <p className="text-white/30 text-sm">No newsletters ready for publication. Assemble one in the Generation page first.</p>
-          ) : (
-            <div className="space-y-2">
-              {newsletters.map(n => (
-                <button key={n.id}
-                  onClick={() => { setSelected(n); setPdfUrl(null); }}
-                  className={`w-full text-left card-sm hover:border-white/20 transition-all ${selected?.id === n.id ? 'border-primary-500/50 bg-primary-500/10' : ''}`}>
-                  <p className="font-semibold text-white">{n.month} {n.year}</p>
-                  <p className="text-xs text-white/40 mt-0.5">{n.item_count} items · {n.department_name}</p>
-                </button>
-              ))}
-            </div>
-          )}
+          <h2 className="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-3">Ready to Publish</h2>
+          {loading ? <div className="text-surface-400 text-sm animate-pulse">Loading…</div>
+            : newsletters.length === 0
+            ? <p className="text-sm text-surface-400">No newsletters ready. Assemble one in Generation first.</p>
+            : newsletters.map(n => (
+              <button key={n.id}
+                onClick={() => { setSelected(n); setPdfUrl(null); }}
+                className={`w-full text-left card-sm mb-2 transition-all hover:shadow-card-md
+                  ${selected?.id === n.id ? 'border-primary-300 bg-primary-50' : ''}`}>
+                <p className="font-semibold text-surface-800">{n.month} {n.year}</p>
+                <p className="text-xs text-surface-400 mt-0.5">{n.item_count} items · {n.department_name}</p>
+              </button>
+            ))
+          }
         </div>
 
-        {/* Right: Actions + Preview */}
+        {/* Preview & publish */}
         <div className="lg:col-span-2">
           {!selected ? (
-            <div className="card h-full flex items-center justify-center">
+            <div className="card h-full min-h-64 flex items-center justify-center">
               <div className="text-center">
-                <FileText size={48} className="text-white/10 mx-auto mb-4" />
-                <p className="text-white/30">Select a newsletter to preview and publish</p>
+                <FileText size={40} className="text-surface-200 mx-auto mb-3" />
+                <p className="text-surface-400 text-sm">Select a newsletter to preview and publish</p>
               </div>
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Newsletter info */}
               <div className="card">
-                <h2 className="text-xl font-bold text-white mb-1">{selected.month} {selected.year} Newsletter</h2>
-                <p className="text-white/40 text-sm">{selected.department_name} · {selected.item_count} items selected</p>
-
-                <div className="flex gap-3 mt-4">
-                  <button onClick={handleGenerate} disabled={generating}
-                    className="btn-primary flex items-center gap-2">
-                    <Eye size={18} />
-                    {generating ? 'Generating PDF...' : 'Generate & Preview'}
+                <h2 className="text-lg font-bold text-surface-900 mb-0.5">{selected.month} {selected.year}</h2>
+                <p className="text-sm text-surface-500 mb-4">{selected.department_name} · {selected.item_count} items</p>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={handleGenerate} disabled={generating} className="btn-primary">
+                    <Eye size={16} /> {generating ? 'Generating PDF…' : 'Generate & Preview PDF'}
                   </button>
-
                   {pdfUrl && (
                     <>
-                      <a href={pdfUrl} download className="btn-secondary flex items-center gap-2">
-                        <Download size={18} /> Download PDF
-                      </a>
-                      <button onClick={handlePublish} disabled={publishing}
-                        className="btn-primary bg-green-600 hover:bg-green-700 flex items-center gap-2 ml-auto">
-                        <Send size={18} />
-                        {publishing ? 'Publishing...' : 'Publish Newsletter'}
+                      <a href={pdfUrl} download className="btn-secondary"><Download size={16} /> Download</a>
+                      <button onClick={handlePublish} disabled={publishing} className="btn-primary bg-emerald-600 hover:bg-emerald-700 ml-auto">
+                        <Send size={16} /> {publishing ? 'Publishing…' : 'Publish Newsletter'}
                       </button>
                     </>
                   )}
                 </div>
               </div>
 
-              {/* PDF Preview */}
               {pdfUrl && (
                 <div className="card p-0 overflow-hidden">
-                  <div className="p-4 border-b border-white/10 flex items-center gap-2">
-                    <FileText size={16} className="text-white/50" />
-                    <span className="text-sm text-white/50">PDF Preview</span>
+                  <div className="px-4 py-3 border-b border-surface-100 flex items-center gap-2 bg-surface-50">
+                    <FileText size={15} className="text-surface-500" />
+                    <span className="text-sm text-surface-600 font-medium">PDF Preview</span>
                   </div>
-                  <iframe
-                    src={pdfUrl}
-                    className="w-full"
-                    style={{ height: '600px' }}
-                    title="Newsletter Preview"
-                  />
+                  <iframe src={pdfUrl} className="w-full" style={{ height: '560px' }} title="Newsletter Preview" />
                 </div>
               )}
             </div>

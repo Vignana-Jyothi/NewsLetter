@@ -6,6 +6,9 @@ const NotificationService = require('./NotificationService');
 // ─────────────────────────────────────────────
 
 const approveSubmission = async (submissionId, adminId, remarks = '') => {
+  // Normalize remarks: trim whitespace; treat whitespace-only as empty
+  const normalizedRemarks = (remarks || '').trim();
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -31,7 +34,7 @@ const approveSubmission = async (submissionId, adminId, remarks = '') => {
     await client.query(
       `INSERT INTO Approval_History (submission_id, admin_id, action, remarks)
        VALUES ($1, $2, 'Approved', $3)`,
-      [submissionId, adminId, remarks]
+      [submissionId, adminId, normalizedRemarks || null]
     );
 
     // Notify the submitter
@@ -52,6 +55,9 @@ const approveSubmission = async (submissionId, adminId, remarks = '') => {
 };
 
 const rejectSubmission = async (submissionId, adminId, remarks = '') => {
+  // Normalize remarks: trim whitespace; treat whitespace-only as empty
+  const normalizedRemarks = (remarks || '').trim();
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -77,11 +83,11 @@ const rejectSubmission = async (submissionId, adminId, remarks = '') => {
     await client.query(
       `INSERT INTO Approval_History (submission_id, admin_id, action, remarks)
        VALUES ($1, $2, 'Rejected', $3)`,
-      [submissionId, adminId, remarks]
+      [submissionId, adminId, normalizedRemarks || null]
     );
 
     // Notify the submitter with admin remarks
-    const remarkText = remarks ? ` Reason: ${remarks}` : '';
+    const remarkText = normalizedRemarks ? ` Reason: ${normalizedRemarks}` : '';
     await NotificationService.createNotification(
       submission.user_id,
       'REJECTION',

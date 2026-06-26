@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
 import StatusBadge from '../../components/StatusBadge';
 import { formatDate } from '../../utils/formatters';
-import { Send, FileText, Bell, TrendingUp } from 'lucide-react';
+import { Send, FileText, TrendingUp, Clock, CheckCircle, XCircle, MessageSquare, ChevronRight } from 'lucide-react';
 
-const StatCard = ({ icon: Icon, label, value, color }) => (
-  <div className="card flex items-center gap-4">
-    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
-      <Icon size={22} className="text-white" />
+const StatCard = ({ icon: Icon, label, value, sub, color, iconBg }) => (
+  <div className="stat-card">
+    <div className={`stat-icon ${iconBg}`}>
+      <Icon size={22} className={color} />
     </div>
     <div>
-      <p className="text-2xl font-bold text-white">{value}</p>
-      <p className="text-sm text-white/50">{label}</p>
+      <p className="stat-value">{value}</p>
+      <p className="stat-label">{label}</p>
+      {sub && <p className="text-xs text-surface-400 mt-0.5">{sub}</p>}
     </div>
   </div>
 );
@@ -20,74 +22,115 @@ const StatCard = ({ icon: Icon, label, value, color }) => (
 const DashboardPage = () => {
   const { user } = useAuth();
   const [submissions, setSubmissions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const endpoint = user.role === 'Admin' ? '/submissions/admin/pending' : '/submissions/mine';
-        const res = await api.get(endpoint);
-        setSubmissions(res.data.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [user]);
+    const endpoint = user?.role === 'Admin' ? '/submissions/admin/pending' : '/submissions/mine';
+    api.get(endpoint)
+      .then(r => setSubmissions(r.data.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [user?.role]);
 
-  const stats = {
-    Admin: [
-      { icon: FileText, label: 'Pending Review', value: submissions.length, color: 'bg-yellow-500/20' },
-    ],
-    Student: [
-      { icon: Send, label: 'Total Submissions', value: submissions.length, color: 'bg-primary-600/30' },
-      { icon: TrendingUp, label: 'Approved', value: submissions.filter(s => ['Approved','Selected','Published','Archived'].includes(s.status)).length, color: 'bg-green-600/20' },
-    ],
-    Faculty: [
-      { icon: Send, label: 'Total Submissions', value: submissions.length, color: 'bg-primary-600/30' },
-      { icon: TrendingUp, label: 'Approved', value: submissions.filter(s => ['Approved','Selected','Published','Archived'].includes(s.status)).length, color: 'bg-green-600/20' },
-    ],
+  const counts = {
+    total:    submissions.length,
+    pending:  submissions.filter(s => s.status === 'Pending').length,
+    approved: submissions.filter(s => ['Approved','Selected','Published','Archived'].includes(s.status)).length,
+    rejected: submissions.filter(s => s.status === 'Rejected').length,
   };
+
+  const adminStats = [
+    { icon: FileText,     label: 'Pending Review', value: counts.total,    iconBg: 'bg-amber-100',   color: 'text-amber-600' },
+  ];
+  const userStats = [
+    { icon: Send,        label: 'Total Submissions', value: counts.total,    iconBg: 'bg-primary-100', color: 'text-primary-600' },
+    { icon: Clock,       label: 'Pending',           value: counts.pending,  iconBg: 'bg-amber-100',   color: 'text-amber-600'   },
+    { icon: CheckCircle, label: 'Approved',          value: counts.approved, iconBg: 'bg-emerald-100', color: 'text-emerald-600' },
+    { icon: XCircle,     label: 'Rejected',          value: counts.rejected, iconBg: 'bg-red-100',     color: 'text-red-500'     },
+  ];
+
+  const stats = user?.role === 'Admin' ? adminStats : userStats;
 
   return (
     <div>
-      {/* Welcome */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-1">
-          Welcome back, <span className="text-gradient">{user?.name?.split(' ')[0]}</span> 👋
-        </h1>
-        <p className="text-white/40">{user?.department} Department · {user?.role}</p>
+      {/* Header */}
+      <div className="page-header flex items-center justify-between">
+        <div>
+          <h1 className="page-title">
+            Welcome back, <span className="text-gradient">{user?.name?.split(' ')[0]}</span> 👋
+          </h1>
+          <p className="page-subtitle">{user?.department_name || user?.department} · {user?.role}</p>
+        </div>
+        {user?.role !== 'Admin' && (
+          <Link to="/submissions/new" className="btn-primary">
+            <Send size={16} /> New Submission
+          </Link>
+        )}
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {(stats[user?.role] || []).map((s, i) => (
-          <StatCard key={i} {...s} />
-        ))}
+        {stats.map((s, i) => <StatCard key={i} {...s} />)}
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent submissions */}
       <div className="card">
-        <h2 className="text-lg font-semibold mb-4">
-          {user?.role === 'Admin' ? 'Pending Submissions' : 'My Recent Submissions'}
-        </h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-semibold text-surface-800">
+            {user?.role === 'Admin' ? 'Pending Submissions' : 'My Recent Submissions'}
+          </h2>
+          <Link
+            to={user?.role === 'Admin' ? '/approvals' : '/submissions'}
+            className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+          >
+            View all <ChevronRight size={14} />
+          </Link>
+        </div>
+
         {loading ? (
-          <div className="text-white/30 text-sm animate-pulse">Loading...</div>
-        ) : submissions.length === 0 ? (
-          <p className="text-white/30 text-sm">No submissions yet.</p>
-        ) : (
           <div className="space-y-3">
-            {submissions.slice(0, 5).map((s) => (
-              <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all">
-                <div>
-                  <p className="text-sm font-medium text-white">{s.title}</p>
-                  <p className="text-xs text-white/40">{s.type} · {formatDate(s.created_at)}</p>
-                </div>
-                <StatusBadge status={s.status} />
-              </div>
+            {[1,2,3].map(i => (
+              <div key={i} className="h-14 bg-surface-100 rounded-xl animate-pulse" />
             ))}
+          </div>
+        ) : submissions.length === 0 ? (
+          <div className="text-center py-10">
+            <Send size={32} className="text-surface-300 mx-auto mb-2" />
+            <p className="text-surface-400 text-sm">No submissions yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-surface-100">
+                  <th className="table-header">Title</th>
+                  <th className="table-header">Type</th>
+                  <th className="table-header">Date</th>
+                  <th className="table-header">Status</th>
+                  {user?.role !== 'Admin' && <th className="table-header">Remarks</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {submissions.slice(0, 6).map(s => (
+                  <tr key={s.id} className="table-row">
+                    <td className="table-cell font-medium text-surface-800">{s.title}</td>
+                    <td className="table-cell text-surface-500 text-xs">{s.type}</td>
+                    <td className="table-cell text-surface-500">{formatDate(s.created_at)}</td>
+                    <td className="table-cell"><StatusBadge status={s.status} /></td>
+                    {user?.role !== 'Admin' && (
+                      <td className="table-cell">
+                        {s.admin_remarks ? (
+                          <div className="flex items-start gap-1.5 max-w-xs">
+                            <MessageSquare size={13} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                            <span className="text-xs text-amber-700 line-clamp-2">{s.admin_remarks}</span>
+                          </div>
+                        ) : <span className="text-surface-300 text-xs">—</span>}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

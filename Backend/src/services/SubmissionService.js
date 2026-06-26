@@ -58,8 +58,19 @@ const submitForApproval = async (submissionId, userId) => {
 
 const getUserSubmissions = async (userId) => {
   const result = await pool.query(
-    `SELECT s.*, 
-       json_agg(sf) FILTER (WHERE sf.id IS NOT NULL) AS files
+    // Pull the most-recent remark from Approval_History for each submission
+    // so students/faculty can see admin feedback directly on the list.
+    `SELECT s.*,
+       json_agg(sf ORDER BY sf.created_at) FILTER (WHERE sf.id IS NOT NULL) AS files,
+       (
+         SELECT ah.remarks
+         FROM Approval_History ah
+         WHERE ah.submission_id = s.id
+           AND ah.remarks IS NOT NULL
+           AND ah.remarks <> ''
+         ORDER BY ah.created_at DESC
+         LIMIT 1
+       ) AS admin_remarks
      FROM Submissions s
      LEFT JOIN Submission_Files sf ON sf.submission_id = s.id
      WHERE s.user_id = $1
@@ -74,7 +85,16 @@ const getSubmissionById = async (submissionId) => {
   const result = await pool.query(
     `SELECT s.*, u.name AS submitted_by, u.role AS submitter_role,
        d.name AS department,
-       json_agg(sf) FILTER (WHERE sf.id IS NOT NULL) AS files
+       json_agg(sf ORDER BY sf.created_at) FILTER (WHERE sf.id IS NOT NULL) AS files,
+       (
+         SELECT ah.remarks
+         FROM Approval_History ah
+         WHERE ah.submission_id = s.id
+           AND ah.remarks IS NOT NULL
+           AND ah.remarks <> ''
+         ORDER BY ah.created_at DESC
+         LIMIT 1
+       ) AS admin_remarks
      FROM Submissions s
      LEFT JOIN Users u ON u.id = s.user_id
      LEFT JOIN Departments d ON d.id = u.department_id
@@ -132,6 +152,24 @@ const updateSubmission = async (submissionId, userId, updates) => {
   return result.rows[0];
 };
 
+// Reopen a Rejected submission so the user can correct and resubmit.
+// Resets status back to Draft and clears any Selected/Published lock.
+const reopenRejectedSubmission = async (submissionId, userId) => {
+  const result = await pool.query(
+    `UPDATE Submissions
+     SET status = 'Draft', updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND user_id = $2 AND status = 'Rejected'
+     RETURNING *`,
+    [submissionId, userId]
+  );
+  if (result.rows.length === 0) {
+    const err = new Error('Submission not found or not in Rejected status.');
+    err.status = 404;
+    throw err;
+  }
+  return result.rows[0];
+};
+
 module.exports = {
   createSubmission,
   submitForApproval,
@@ -140,4 +178,5 @@ module.exports = {
   getPendingSubmissions,
   getApprovedSubmissions,
   updateSubmission,
+  reopenRejectedSubmission,
 };

@@ -44,6 +44,18 @@ const submitForApproval = async (req, res, next) => {
   }
 };
 
+// PATCH /submissions/:id/reopen
+// Resets a Rejected submission back to Draft so the user can edit and resubmit.
+const reopenSubmission = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const submission = await SubmissionService.reopenRejectedSubmission(id, req.user.id);
+    res.json({ success: true, data: submission });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getMySubmissions = async (req, res, next) => {
   try {
     const submissions = await SubmissionService.getUserSubmissions(req.user.id);
@@ -85,6 +97,7 @@ module.exports = {
   createSubmission,
   updateSubmission,
   submitForApproval,
+  reopenSubmission,
   getMySubmissions,
   getSubmissionById,
   getPendingSubmissions,

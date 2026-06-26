@@ -6,6 +6,7 @@ import LoginPage          from './pages/Auth/LoginPage';
 import DashboardPage      from './pages/Dashboard/DashboardPage';
 import MySubmissionsPage  from './pages/Submissions/MySubmissionsPage';
 import NewSubmissionPage  from './pages/Submissions/NewSubmissionPage';
+import EditSubmissionPage from './pages/Submissions/EditSubmissionPage';
 import ApprovalsPage      from './pages/Approvals/ApprovalsPage';
 import GenerationPage     from './pages/Generation/GenerationPage';
 import PublicationPage    from './pages/Publication/PublicationPage';
@@ -26,6 +27,7 @@ const AppRoutes = () => {
       <Route path="/dashboard"   element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
       <Route path="/submissions" element={<PrivateRoute><MySubmissionsPage /></PrivateRoute>} />
       <Route path="/submissions/new" element={<PrivateRoute><NewSubmissionPage /></PrivateRoute>} />
+      <Route path="/submissions/edit/:id" element={<PrivateRoute><EditSubmissionPage /></PrivateRoute>} />
       <Route path="/approvals"   element={<PrivateRoute adminOnly><ApprovalsPage /></PrivateRoute>} />
       <Route path="/generation"  element={<PrivateRoute adminOnly><GenerationPage /></PrivateRoute>} />
       <Route path="/publication" element={<PrivateRoute adminOnly><PublicationPage /></PrivateRoute>} />

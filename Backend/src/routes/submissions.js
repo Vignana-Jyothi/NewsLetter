@@ -6,6 +6,7 @@ const {
   createSubmission,
   updateSubmission,
   submitForApproval,
+  reopenSubmission,
   getMySubmissions,
   getSubmissionById,
   getPendingSubmissions,
@@ -19,6 +20,7 @@ router.use(mockAuth);
 router.post('/', upload.array('files', 5), createSubmission);
 router.put('/:id', updateSubmission);
 router.patch('/:id/submit', submitForApproval);
+router.patch('/:id/reopen', reopenSubmission);   // reopen Rejected → Draft
 router.get('/mine', getMySubmissions);
 router.get('/:id', getSubmissionById);
 
