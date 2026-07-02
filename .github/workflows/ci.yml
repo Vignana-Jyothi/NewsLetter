@@ -1,0 +1,123 @@
+name: CI/CD — Newsletter
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PATH: /opt/jmeter/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # JOB 1 — Backend Lint
+  # ────────────────────────────────────────────────────────────────
+  backend-lint:
+    name: Backend Lint
+    runs-on: self-hosted
+
+    defaults:
+      run:
+        working-directory: Backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: Backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+        continue-on-error: true
+
+  # ────────────────────────────────────────────────────────────────
+  # JOB 2 — Frontend Lint & Build
+  # ────────────────────────────────────────────────────────────────
+  frontend-lint-build:
+    name: Frontend Lint & Build
+    runs-on: self-hosted
+    needs: backend-lint
+
+    defaults:
+      run:
+        working-directory: Frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+
+  # ────────────────────────────────────────────────────────────────
+  # JOB 3 — Docker Build & Deploy (only on push to main)
+  # ────────────────────────────────────────────────────────────────
+  deploy:
+    name: Build & Deploy Docker Containers
+    runs-on: self-hosted
+    needs: [backend-lint, frontend-lint-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Verify Docker is accessible
+        run: docker --version && docker compose version
+
+      - name: Create .env file
+        run: |
+          cat << EOF > .env
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          VITE_API_URL=${{ secrets.VITE_API_URL }}
+          EOF
+
+      - name: Force remove old containers
+        run: |
+          docker compose down --remove-orphans 2>/dev/null || true
+          docker image prune -f
+
+      - name: Build Docker images
+        run: |
+          docker compose build \
+            --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} \
+            --build-arg VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+
+      - name: Start containers
+        run: docker compose up -d
+
+      - name: Show running containers
+        run: docker compose ps
+
+      - name: Clean up old images
+        run: docker image prune -f
+        continue-on-error: true
