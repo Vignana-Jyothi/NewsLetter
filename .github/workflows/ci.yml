@@ -15,7 +15,7 @@ jobs:
   # ────────────────────────────────────────────────────────────────
   backend-lint:
     name: Backend Lint
-    runs-on: self-hosted
+    runs-on: gamma
 
     defaults:
       run:
@@ -44,7 +44,7 @@ jobs:
   # ────────────────────────────────────────────────────────────────
   frontend-lint-build:
     name: Frontend Lint & Build
-    runs-on: self-hosted
+    runs-on: gamma
     needs: backend-lint
 
     defaults:
@@ -80,7 +80,7 @@ jobs:
   # ────────────────────────────────────────────────────────────────
   deploy:
     name: Build & Deploy Docker Containers
-    runs-on: self-hosted
+    runs-on: gamma
     needs: [backend-lint, frontend-lint-build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
