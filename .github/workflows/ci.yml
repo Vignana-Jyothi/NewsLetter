@@ -2,17 +2,18 @@ name: CI/CD — Newsletter
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [main, develop]
-
-env:
-  PATH: /opt/jmeter/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+    branches:
+      - main
+      - develop
 
 jobs:
-  # ────────────────────────────────────────────────────────────────
-  # JOB 1 — Backend Lint
-  # ────────────────────────────────────────────────────────────────
+  # -------------------------------------------------------
+  # Backend Lint
+  # -------------------------------------------------------
   backend-lint:
     name: Backend Lint
     runs-on: gamma
@@ -22,14 +23,14 @@ jobs:
         working-directory: Backend
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: 20
+          cache: npm
           cache-dependency-path: Backend/package-lock.json
 
       - name: Install dependencies
@@ -39,9 +40,9 @@ jobs:
         run: npm run lint --if-present
         continue-on-error: true
 
-  # ────────────────────────────────────────────────────────────────
-  # JOB 2 — Frontend Lint & Build
-  # ────────────────────────────────────────────────────────────────
+  # -------------------------------------------------------
+  # Frontend Build
+  # -------------------------------------------------------
   frontend-lint-build:
     name: Frontend Lint & Build
     runs-on: gamma
@@ -52,14 +53,14 @@ jobs:
         working-directory: Frontend
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: 20
+          cache: npm
           cache-dependency-path: Frontend/package-lock.json
 
       - name: Install dependencies
@@ -70,54 +71,90 @@ jobs:
         continue-on-error: true
 
       - name: Build
-        run: npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        run: npm run build
 
-  # ────────────────────────────────────────────────────────────────
-  # JOB 3 — Docker Build & Deploy (only on push to main)
-  # ────────────────────────────────────────────────────────────────
+  # -------------------------------------------------------
+  # Docker Deploy
+  # -------------------------------------------------------
   deploy:
-    name: Build & Deploy Docker Containers
+    name: Docker Deploy
     runs-on: gamma
-    needs: [backend-lint, frontend-lint-build]
+
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
+    needs:
+      - backend-lint
+      - frontend-lint-build
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Verify Docker is accessible
-        run: docker --version && docker compose version
-
-      - name: Create .env file
+      - name: Verify Docker
         run: |
-          cat << EOF > .env
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          docker --version
+          docker compose version
+
+      - name: Create .env
+        run: |
+          cat > .env <<EOF
+          PORT=5000
+
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+
           JWT_SECRET=${{ secrets.JWT_SECRET }}
+
           GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+
+          ADMIN_DEV_KEY=${{ secrets.ADMIN_DEV_KEY }}
+          ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}
+          ALLOWED_EMAIL_DOMAIN=${{ secrets.ALLOWED_EMAIL_DOMAIN }}
+
+          SMTP_HOST=${{ secrets.SMTP_HOST }}
+          SMTP_PORT=${{ secrets.SMTP_PORT }}
+          SMTP_USER=${{ secrets.SMTP_USER }}
+          SMTP_PASS=${{ secrets.SMTP_PASS }}
+
+          EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+          FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+
+          DEV_MODE=${{ secrets.DEV_MODE }}
+          UPLOAD_DIR=${{ secrets.UPLOAD_DIR }}
+
           VITE_API_URL=${{ secrets.VITE_API_URL }}
           EOF
 
-      - name: Force remove old containers
+      - name: Stop old containers
         run: |
-          docker compose down --remove-orphans 2>/dev/null || true
-          docker image prune -f
+          docker compose down --remove-orphans || true
 
-      - name: Build Docker images
+      - name: Remove old images
         run: |
-          docker compose build \
+          docker image prune -af || true
+
+      - name: Build Docker Images
+        run: |
+          docker compose build --no-cache \
             --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} \
             --build-arg VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
 
-      - name: Start containers
-        run: docker compose up -d
+      - name: Start Containers
+        run: |
+          docker compose up -d
 
-      - name: Show running containers
+      - name: Show Containers
         run: docker compose ps
 
-      - name: Clean up old images
-        run: docker image prune -f
-        continue-on-error: true
+      - name: Backend Logs
+        run: docker logs newsletter_backend --tail 50 || true
+
+      - name: Frontend Logs
+        run: docker logs newsletter_frontend --tail 50 || true

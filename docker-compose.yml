@@ -1,52 +1,49 @@
 services:
-  # ── Backend ───────────────────────────────────────────────────────────────────
   backend:
-  build:
-    context: ./Backend
-    dockerfile: Dockerfile
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
 
-  container_name: newsletter_backend
+    container_name: newsletter_backend
 
-  restart: unless-stopped
+    restart: unless-stopped
 
-  environment:
-    NODE_ENV: production
-    PORT: ${PORT}
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT}
 
-    DB_HOST: ${DB_HOST}
-    DB_PORT: ${DB_PORT}
-    DB_NAME: ${DB_NAME}
-    DB_USER: ${DB_USER}
-    DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
 
-    JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
 
-    GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-    GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
 
-    ADMIN_DEV_KEY: ${ADMIN_DEV_KEY}
-    ADMIN_EMAILS: ${ADMIN_EMAILS}
-    ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN}
+      ADMIN_DEV_KEY: ${ADMIN_DEV_KEY}
+      ADMIN_EMAILS: ${ADMIN_EMAILS}
+      ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN}
 
-    SMTP_HOST: ${SMTP_HOST}
-    SMTP_PORT: ${SMTP_PORT}
-    SMTP_USER: ${SMTP_USER}
-    SMTP_PASS: ${SMTP_PASS}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
 
-    EMAIL_FROM: ${EMAIL_FROM}
-    FRONTEND_URL: ${FRONTEND_URL}
+      EMAIL_FROM: ${EMAIL_FROM}
+      FRONTEND_URL: ${FRONTEND_URL}
 
-    DEV_MODE: ${DEV_MODE}
+      DEV_MODE: ${DEV_MODE}
+      UPLOAD_DIR: ${UPLOAD_DIR}
 
-    UPLOAD_DIR: ${UPLOAD_DIR}
+    ports:
+      - "6314:5000"
 
-  ports:
-    - "6314:5000"
+    networks:
+      - newsletter_net
 
-  networks:
-    - newsletter_net
-
-  # ── Frontend ──────────────────────────────────────────────────────────────────
   frontend:
     build:
       context: ./Frontend
@@ -54,12 +51,17 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL}
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+
     container_name: newsletter_frontend
+
     restart: unless-stopped
+
     ports:
       - "3323:80"
+
     depends_on:
       - backend
+
     networks:
       - newsletter_net
 
