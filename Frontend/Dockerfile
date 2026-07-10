@@ -19,7 +19,7 @@ ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
 RUN npm run build
 
-# -----------------------------
+# ------------------------------
 # Stage 2: Serve with Nginx
 # ------------------------------
 FROM nginx:alpine
