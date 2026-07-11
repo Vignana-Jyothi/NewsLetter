@@ -122,7 +122,9 @@ dist
 .DS_Store
 
 # Newsflow specific exclusions
-Backend/uploads/
+# Keep the uploads directory but ignore its contents (PDFs/images are generated locally)
+Backend/uploads/*
+!Backend/uploads/.gitkeep
 
 # Documentation files to untrack/ignore
 Explanation.md

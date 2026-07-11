@@ -31,6 +31,43 @@ const SECTION_ORDER = [
   'General',
 ];
 
+const getDiskPathFromFileUrl = (fileUrl) => {
+  if (!fileUrl) return null;
+
+  let normalized = String(fileUrl).trim();
+  if (!normalized) return null;
+
+  if (/^https?:\/\//i.test(normalized)) {
+    try {
+      normalized = new URL(normalized).pathname;
+    } catch {
+      normalized = normalized.replace(/^https?:\/\/[^/]+/i, '');
+    }
+  }
+
+  normalized = normalized.replace(/^\/+/, '');
+  if (!normalized) return null;
+
+  return path.resolve(__dirname, '../../', normalized);
+};
+
+const ensureNewsletterPdfExists = async (newsletterId, latestFile) => {
+  if (!newsletterId) return latestFile;
+
+  const diskPath = latestFile?.file_url ? getDiskPathFromFileUrl(latestFile.file_url) : null;
+  if (diskPath && fs.existsSync(diskPath)) {
+    return latestFile;
+  }
+
+  try {
+    const generatedUrl = await generatePDF(newsletterId);
+    return generatedUrl ? { ...(latestFile || {}), file_url: generatedUrl } : latestFile;
+  } catch (err) {
+    console.error(`[Archive] Failed to regenerate PDF for newsletter ${newsletterId}:`, err.message);
+    return latestFile;
+  }
+};
+
 // ─────────────────────────────────────────────
 // PDF design tokens
 // ─────────────────────────────────────────────
@@ -179,8 +216,8 @@ const drawSectionHeading = (doc, section, y) => {
 const embedImage = (doc, fileUrl, y, maxW, maxH) => {
   try {
     // fileUrl is like /uploads/uuid.jpg
-    const localPath = path.join(__dirname, '../../', fileUrl);
-    if (!fs.existsSync(localPath)) return 0;
+    const localPath = getDiskPathFromFileUrl(fileUrl);
+    if (!localPath || !fs.existsSync(localPath)) return 0;
     const ext = path.extname(localPath).toLowerCase();
     if (!['.jpg', '.jpeg', '.png'].includes(ext)) return 0;
 
@@ -422,6 +459,23 @@ const generatePDF = async (newsletterId) => {
 };
 
 // ─────────────────────────────────────────────
+// Regenerate PDF — works for any newsletter status (Draft, Published, Archived).
+// Used when the PDF file is missing on disk (e.g. after a fresh git clone).
+// Generates a new PDF file, inserts a new Newsletter_Files row, and returns
+// the new fileUrl.  Old DB rows are NOT deleted (full audit trail).
+// ─────────────────────────────────────────────
+const regeneratePDF = async (newsletterId) => {
+  const nl = await getNewsletterById(newsletterId);
+  if (!nl) {
+    const err = new Error('Newsletter not found');
+    err.status = 404;
+    throw err;
+  }
+  // generatePDF already handles everything — reuse it directly
+  return generatePDF(newsletterId);
+};
+
+// ─────────────────────────────────────────────
 // Publish
 // ─────────────────────────────────────────────
 const publishNewsletter = async (newsletterId, adminId) => {
@@ -509,13 +563,50 @@ const archiveNewsletter = async (newsletterId) => {
 const getArchivedNewsletters = async (departmentId) => {
   const r = await pool.query(
     `SELECT n.*, d.name AS department_name,
-       (SELECT json_agg(nf) FROM Newsletter_Files nf WHERE nf.newsletter_id = n.id) AS files
-     FROM Newsletters n JOIN Departments d ON d.id = n.department_id
+       -- Return the single most-recent PDF file for each newsletter
+       (SELECT row_to_json(nf)
+        FROM Newsletter_Files nf
+        WHERE nf.newsletter_id = n.id AND nf.file_type = 'PDF'
+        ORDER BY nf.created_at DESC
+        LIMIT 1
+       ) AS latest_file,
+       (SELECT COUNT(*)
+        FROM Newsletter_Items ni
+        WHERE ni.newsletter_id = n.id
+       ) AS item_count
+     FROM Newsletters n
+     JOIN Departments d ON d.id = n.department_id
      WHERE n.department_id = $1 AND n.status IN ('Published', 'Archived')
      ORDER BY n.year DESC, n.month DESC`,
     [departmentId]
   );
-  return r.rows;
+
+  // Annotate each row with whether the PDF file actually exists on disk right now
+  const results = [];
+  for (const nl of r.rows) {
+    const latestFile = nl.latest_file ?? null;
+    let pdf_available = false;
+    let resolvedFile = latestFile;
+
+    if (latestFile?.file_url) {
+      const diskPath = getDiskPathFromFileUrl(latestFile.file_url);
+      pdf_available = Boolean(diskPath && fs.existsSync(diskPath));
+
+      if (!pdf_available) {
+        resolvedFile = await ensureNewsletterPdfExists(nl.id, latestFile);
+        const regeneratedPath = resolvedFile?.file_url ? getDiskPathFromFileUrl(resolvedFile.file_url) : null;
+        pdf_available = Boolean(regeneratedPath && fs.existsSync(regeneratedPath));
+      }
+    }
+
+    results.push({
+      ...nl,
+      latest_file: resolvedFile,  // single object or null
+      pdf_available,              // boolean — false means regeneration still failed
+    });
+  }
+
+  return results;
 };
 
 module.exports = {
@@ -526,6 +617,7 @@ module.exports = {
   removeItemFromNewsletter,
   getNewsletterItems,
   generatePDF,
+  regeneratePDF,
   publishNewsletter,
   archiveNewsletter,
   getArchivedNewsletters,

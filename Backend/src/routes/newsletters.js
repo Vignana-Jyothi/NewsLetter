@@ -9,6 +9,7 @@ const {
   addItem,
   removeItem,
   generatePDF,
+  regeneratePDF,
   publishNewsletter,
   archiveNewsletter,
   getArchives,
@@ -27,6 +28,8 @@ router.get('/', requireRole('Admin'), getMyNewsletters);
 router.post('/:id/items', requireRole('Admin'), addItem);
 router.delete('/:id/items', requireRole('Admin'), removeItem);
 router.post('/:id/generate-pdf', requireRole('Admin'), generatePDF);
+// Regenerate PDF for any newsletter status (used when PDF file is missing on disk)
+router.post('/:id/regenerate-pdf', requireRole('Admin'), regeneratePDF);
 router.patch('/:id/publish', requireRole('Admin'), publishNewsletter);
 router.patch('/:id/archive', requireRole('Admin'), archiveNewsletter);
 

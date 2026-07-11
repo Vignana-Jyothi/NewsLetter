@@ -82,6 +82,16 @@ const generatePDF = async (req, res, next) => {
   }
 };
 
+// Regenerate PDF for any status — used when local file is missing after git clone
+const regeneratePDF = async (req, res, next) => {
+  try {
+    const fileUrl = await NewsletterService.regeneratePDF(req.params.id);
+    res.json({ success: true, data: { fileUrl } });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const publishNewsletter = async (req, res, next) => {
   try {
     const newsletter = await NewsletterService.publishNewsletter(req.params.id, req.user.id);
@@ -117,6 +127,7 @@ module.exports = {
   addItem,
   removeItem,
   generatePDF,
+  regeneratePDF,
   publishNewsletter,
   archiveNewsletter,
   getArchives,
