@@ -141,10 +141,10 @@ jobs:
           docker image prune -af || true
 
       - name: Build Docker Images
-        run: |
-          docker compose build --no-cache \
-            --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} \
-            --build-arg VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+        run: >-
+          docker compose build --no-cache
+          --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }}
+          --build-arg VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
 
       - name: Start Containers
         run: |
