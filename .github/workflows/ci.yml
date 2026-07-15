@@ -41,7 +41,7 @@ jobs:
         continue-on-error: true
 
   # -------------------------------------------------------
-  # Frontend Build
+  # Frontend Lint & Build
   # -------------------------------------------------------
   frontend-lint-build:
     name: Frontend Lint & Build
@@ -130,6 +130,7 @@ jobs:
           UPLOAD_DIR=${{ secrets.UPLOAD_DIR }}
 
           VITE_API_URL=${{ secrets.VITE_API_URL }}
+          VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
           EOF
 
       - name: Stop old containers
@@ -141,20 +142,24 @@ jobs:
           docker image prune -af || true
 
       - name: Build Docker Images
-        run: >-
-          docker compose build --no-cache
-          --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }}
-          --build-arg VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+        run: |
+          docker compose build \
+            --no-cache \
+            --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} \
+            --build-arg VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
 
       - name: Start Containers
         run: |
           docker compose up -d
 
-      - name: Show Containers
-        run: docker compose ps
+      - name: Show Running Containers
+        run: |
+          docker compose ps
 
       - name: Backend Logs
-        run: docker logs newsletter_backend --tail 50 || true
+        run: |
+          docker logs newsletter_backend --tail 50 || true
 
       - name: Frontend Logs
-        run: docker logs newsletter_frontend --tail 50 || true
+        run: |
+          docker logs newsletter_frontend --tail 50 || true
