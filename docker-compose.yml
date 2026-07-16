@@ -45,12 +45,13 @@ services:
       - newsletter_net
 
   frontend:
-    build:
-      context: ./Frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL}
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+  build:
+    context: ./Frontend
+    dockerfile: Dockerfile
+    args:
+      VITE_API_URL: ${VITE_API_URL}
+      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+      VITE_AUTH_URL: ${VITE_AUTH_URL}
 
     container_name: newsletter_frontend
 

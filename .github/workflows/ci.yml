@@ -73,7 +73,8 @@ jobs:
       - name: Build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_AUTH_URL: ${{ secrets.VITE_AUTH_URL }}
         run: npm run build
 
   # -------------------------------------------------------
@@ -130,7 +131,8 @@ jobs:
           UPLOAD_DIR=${{ secrets.UPLOAD_DIR }}
 
           VITE_API_URL=${{ secrets.VITE_API_URL }}
-          VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_AUTH_URL=${{ secrets.VITE_AUTH_URL }}
           EOF
 
       - name: Stop old containers
