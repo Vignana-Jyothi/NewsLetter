@@ -31,7 +31,7 @@ RUN npm run build
 
 # -----------------------------
 # Stage 2: Nginx
-# -----------------------------
+# ------------------------------
 FROM nginx:alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
