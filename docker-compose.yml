@@ -53,18 +53,18 @@ services:
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
         VITE_AUTH_URL: ${VITE_AUTH_URL}
 
-      container_name: newsletter_frontend
+    container_name: newsletter_frontend
 
-      restart: unless-stopped
+    restart: unless-stopped
 
-      ports:
-        - "3323:80"
+    ports:
+      - "3323:80"
 
-      depends_on:
-        - backend
+    depends_on:
+      - backend
 
-      networks:
-        - newsletter_net
+    networks:
+      - newsletter_net
 
 networks:
   newsletter_net:
