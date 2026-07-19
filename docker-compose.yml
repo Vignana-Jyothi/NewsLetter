@@ -45,26 +45,26 @@ services:
       - newsletter_net
 
   frontend:
-  build:
-    context: ./Frontend
-    dockerfile: Dockerfile
-    args:
-      VITE_API_URL: ${VITE_API_URL}
-      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
-      VITE_AUTH_URL: ${VITE_AUTH_URL}
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_AUTH_URL: ${VITE_AUTH_URL}
 
-    container_name: newsletter_frontend
+      container_name: newsletter_frontend
 
-    restart: unless-stopped
+      restart: unless-stopped
 
-    ports:
-      - "3323:80"
+      ports:
+        - "3323:80"
 
-    depends_on:
-      - backend
+      depends_on:
+        - backend
 
-    networks:
-      - newsletter_net
+      networks:
+        - newsletter_net
 
 networks:
   newsletter_net:
