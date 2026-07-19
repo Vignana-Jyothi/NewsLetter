@@ -1,67 +1,54 @@
+version: "3.9"
+
 services:
+
   backend:
+    container_name: newsletter_backend
+
     build:
       context: ./Backend
       dockerfile: Dockerfile
 
-    container_name: newsletter_backend
-
     restart: unless-stopped
+
+    env_file:
+      - .env
 
     environment:
       NODE_ENV: production
-      PORT: ${PORT}
-
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-
-      JWT_SECRET: ${JWT_SECRET}
-
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-
-      ADMIN_DEV_KEY: ${ADMIN_DEV_KEY}
-      ADMIN_EMAILS: ${ADMIN_EMAILS}
-      ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN}
-
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASS: ${SMTP_PASS}
-
-      EMAIL_FROM: ${EMAIL_FROM}
-      FRONTEND_URL: ${FRONTEND_URL}
-
-      DEV_MODE: ${DEV_MODE}
-      UPLOAD_DIR: ${UPLOAD_DIR}
 
     ports:
       - "6314:5000"
+
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
     networks:
       - newsletter_net
 
   frontend:
+    container_name: newsletter_frontend
+
     build:
       context: ./Frontend
       dockerfile: Dockerfile
+
       args:
         VITE_API_URL: ${VITE_API_URL}
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
         VITE_AUTH_URL: ${VITE_AUTH_URL}
-
-    container_name: newsletter_frontend
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
 
     restart: unless-stopped
 
+    depends_on:
+      backend:
+        condition: service_started
+
     ports:
       - "3323:80"
-
-    depends_on:
-      - backend
 
     networks:
       - newsletter_net

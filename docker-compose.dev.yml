@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+
+  backend:
+    container_name: newsletter_backend_dev
+
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: development
+
+    ports:
+      - "6315:5000"
+
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+    networks:
+      - newsletter_dev_net
+
+  frontend:
+    container_name: newsletter_frontend_dev
+
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_AUTH_URL: ${VITE_AUTH_URL}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+
+    restart: unless-stopped
+
+    depends_on:
+      backend:
+        condition: service_started
+
+    ports:
+      - "3324:80"
+
+    networks:
+      - newsletter_dev_net
+
+networks:
+  newsletter_dev_net:
+    driver: bridge
