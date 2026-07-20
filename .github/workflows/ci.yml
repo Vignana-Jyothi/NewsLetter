@@ -23,7 +23,7 @@ jobs:
   setup:
     name: Setup Deployment Variables
 
-    runs-on: ubantu-latest
+    runs-on: ubuntu-latest
 
     outputs:
       runner: ${{ steps.vars.outputs.runner }}
