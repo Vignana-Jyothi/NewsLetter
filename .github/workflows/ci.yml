@@ -23,7 +23,7 @@ jobs:
   setup:
     name: Setup Deployment Variables
 
-    runs-on: ubuntu-latest
+    runs-on: dev-ai
 
     outputs:
       runner: ${{ steps.vars.outputs.runner }}
@@ -56,7 +56,7 @@ jobs:
 
     needs: setup
 
-    runs-on:
+    runs-on: dev-ai
       - self-hosted
       - ${{ needs.setup.outputs.runner }}
 
@@ -93,7 +93,7 @@ jobs:
       - setup
       - backend-lint
 
-    runs-on:
+    runs-on: dev-ai
       - self-hosted
       - ${{ needs.setup.outputs.runner }}
 
