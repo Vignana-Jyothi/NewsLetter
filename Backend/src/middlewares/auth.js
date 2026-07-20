@@ -63,6 +63,11 @@ const verifyToken = async (req, res, next) => {
         timeout: 5000,
       });
     } catch (axiosErr) {
+      console.error('[Auth] Central Auth verification failed:', axiosErr.message);
+      if (axiosErr.response) {
+        console.error('[Auth] Central Auth responded with:', axiosErr.response.status, axiosErr.response.data);
+      }
+      
       if (axiosErr.code === 'ECONNABORTED') {
         return res.status(503).json({ error: 'Auth service timeout. Try again.' });
       }
