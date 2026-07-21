@@ -58,8 +58,11 @@ const verifyToken = async (req, res, next) => {
     // Verify with central auth server (with a 5s timeout)
     let response;
     try {
-      response = await axios.get(`${AUTH_URL}/verify-token`, {
-        headers: { Authorization: `Bearer ${token}` },
+      response = await axios.get(`${AUTH_URL}/check-auth`, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          Cookie: `userToken=${token}`
+        },
         timeout: 5000,
       });
     } catch (axiosErr) {
@@ -75,11 +78,16 @@ const verifyToken = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid or expired token. Please login again.' });
     }
 
-    if (!response.data || !response.data.user) {
-      return res.status(401).json({ error: 'Invalid token response.' });
+    // If the auth server returns the user, use it. Otherwise decode the JWT payload ourselves!
+    let authUser = response.data?.user;
+    if (!authUser) {
+      try {
+        const payloadStr = Buffer.from(token.split('.')[1], 'base64').toString();
+        authUser = JSON.parse(payloadStr);
+      } catch (err) {
+        return res.status(401).json({ error: 'Invalid token payload.' });
+      }
     }
-
-    const authUser = response.data.user;
 
     // Look up the user in the local DB by email to get department_id.
     // Per Explanation.md: auth server provides identity (email/name/picture);
