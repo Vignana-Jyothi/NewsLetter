@@ -10,6 +10,10 @@ services:
       dockerfile: Dockerfile
 
     restart: unless-stopped
+    
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
     env_file:
       - .env
@@ -42,6 +46,10 @@ services:
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
 
     restart: unless-stopped
+    
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
     depends_on:
       backend:
