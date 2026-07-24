@@ -18,7 +18,7 @@ services:
       NODE_ENV: development
 
     ports:
-      - "6315:5000"
+      - "6314:5000"
 
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/health"]
@@ -48,7 +48,7 @@ services:
         condition: service_started
 
     ports:
-      - "3324:80"
+      - "3323:80"
 
     networks:
       - newsletter_dev_net
