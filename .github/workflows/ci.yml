@@ -4,12 +4,12 @@ on:
   push:
     branches:
       - main
-      - develop
+      - dev
 
   pull_request:
     branches:
       - main
-      - develop
+      - dev
 
 env:
   NODE_VERSION: 20
@@ -27,7 +27,7 @@ jobs:
 
     outputs:
       runner: ${{ steps.vars.outputs.runner }}
-      # environment: ${{ steps.vars.outputs.environment }}
+      environment: ${{ steps.vars.outputs.environment }}
       compose: ${{ steps.vars.outputs.compose }}
 
     steps:
@@ -38,11 +38,11 @@ jobs:
 
           if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
             echo "runner=gamma" >> $GITHUB_OUTPUT
-            echo "environment=Production" >> $GITHUB_OUTPUT
+            echo "environment=newsletter-production" >> $GITHUB_OUTPUT
             echo "compose=docker-compose.prod.yml" >> $GITHUB_OUTPUT
           else
             echo "runner=dev-ai" >> $GITHUB_OUTPUT
-            echo "environment=Development" >> $GITHUB_OUTPUT
+            echo "environment=newsletter-development" >> $GITHUB_OUTPUT
             echo "compose=docker-compose.dev.yml" >> $GITHUB_OUTPUT
           fi
 
@@ -60,7 +60,7 @@ jobs:
       - self-hosted
       - ${{ needs.setup.outputs.runner }}
 
-    # environment: ${{ needs.setup.outputs.environment }}
+    environment: ${{ needs.setup.outputs.environment }}
 
     defaults:
       run:
@@ -97,7 +97,7 @@ jobs:
       - self-hosted
       - ${{ needs.setup.outputs.runner }}
 
-    # environment: ${{ needs.setup.outputs.environment }}
+    environment: ${{ needs.setup.outputs.environment }}
 
     defaults:
       run:
@@ -160,7 +160,7 @@ jobs:
       - self-hosted
       - ${{ needs.setup.outputs.runner }}
 
-    # environment: ${{ needs.setup.outputs.environment }}
+    environment: ${{ needs.setup.outputs.environment }}
 
     steps:
 
